@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <video id="webcam" autoplay playsinline></video>
+<br/>
+<button onclick="startWebcam()">Start Webcam</button>
+<button onclick="takeSnapshot()">Take Snapshot</button>
+<button onclick="startRecording()">Start Recording</button>
+<button onclick="stopRecording()">Stop Recording</button>
+<canvas id="snapshotCanvas" style="display:none;"></canvas>
+<a id="downloadLink" style="display:none;">Download Recording</a>
+ <script>
+    let stream;
+let mediaRecorder;
+let recordedChunks = [];
+
+async function startWebcam() {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    document.getElementById('webcam').srcObject = stream;
+  } catch (err) {
+    console.error('Error accessing webcam:', err);
+  }
+}
+
+function takeSnapshot() {
+  const video = document.getElementById('webcam');
+  const canvas = document.getElementById('snapshotCanvas');
+  const context = canvas.getContext('2d');
+  
+  // Set canvas size to video size
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  
+  context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+  // Show the canvas or export the image
+  canvas.style.display = 'block';
+
+  // Optional: Save as image
+  const imageData = canvas.toDataURL('image/png');
+  const link = document.createElement('a');
+  link.href = imageData;
+  link.download = 'snapshot.png';
+  link.click();
+}
+
+function startRecording() {
+  if (!stream) {
+    alert("Start webcam first!");
+    return;
+  }
+
+  recordedChunks = [];
+  mediaRecorder = new MediaRecorder(stream);
+
+  mediaRecorder.ondataavailable = function (event) {
+    if (event.data.size > 0) {
+      recordedChunks.push(event.data);
+    }
+  };
+
+  mediaRecorder.onstop = function () {
+    const blob = new Blob(recordedChunks, { type: 'video/webm' });
+    const url = URL.createObjectURL(blob);
+    const downloadLink = document.getElementById('downloadLink');
+    downloadLink.href = url;
+    downloadLink.download = 'recording.webm';
+    downloadLink.textContent = 'Download Recording';
+    downloadLink.style.display = 'inline';
+  };
+
+  mediaRecorder.start();
+}
+
+function stopRecording() {
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop();
+  }
+}
+
+ </script>
+</body>
+</html>
